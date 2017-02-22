@@ -9,7 +9,7 @@ info:
 host: localhost:8080
 schemes:
 - http
-- https
+#- https
 basePath: /api
 consumes:
 - application/json
