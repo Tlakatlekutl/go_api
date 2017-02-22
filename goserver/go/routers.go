@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"fmt"
 	"github.com/gorilla/mux"
+
 )
 
 type Route struct {
@@ -28,6 +29,13 @@ func NewRouter() *mux.Router {
 			Name(route.Name).
 			Handler(handler)
 	}
+	//fs := http.FileServer(http.Dir("../static"))
+	//
+	//router.
+	//	Methods("GET").
+	//	Path("/static").
+	//	Name("Static").
+	//	Handler(Logger(fs, "lala"))
 
 	return router
 }
@@ -35,7 +43,32 @@ func NewRouter() *mux.Router {
 func Index(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello World!")
 }
-
+//func Swagger(w http.ResponseWriter, r *http.Request) {
+//	//fmt.Fprintf(w, "Swagger")
+//	//w.Write(http.File("/home/tlakatlekutl/GoglandProjects/tech-db-forum/swagger.yml"))
+//	//http.HandleFunc
+//	//w.Header().Set("Access-Control-Allow-Headers:", "Origin, X-Atmosphere-tracking-id, X-Atmosphere-Framework, X-Cache-Date, Content-Type, X-Atmosphere-Transport, *")
+//	w.Header().Set("Access-Control-Allow-Origin:", "\"*\"")
+//	//w.Header().Set("Access-Control-Allow-Methods:", "POST, GET, OPTIONS , PUT")
+//	//w.Header().Set("Access-Control-Request-Headers:", "Origin, X-Atmosphere-tracking-id, X-Atmosphere-Framework, X-Cache-Date, Content-Type, X-Atmosphere-Transport,  *")
+//	//
+//	//w.Header().Set("Content-Type:", "application/json")
+//	//w.Header().Set("accept:","application/json; charset=utf-8,*/*")
+//	//http.ServeFile(w, r, "swagger.yml")
+//
+//	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+//	w.WriteHeader(http.StatusOK)
+//	data, _ := ioutil.ReadFile("swagger.yml")
+//	w.Write(data)
+//}
+func Static(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, r.URL.Path[1:])
+	fmt.Println(r.URL.Path[1:])
+	//w.Header().Set("Access-Control-Allow-Origin:", "*")
+	//w.Header().Set("Access-Control-Allow-Methods: GET", "POST, DELETE, PUT, PATCH, OPTIONS")
+	//w.Header().Set("Access-Control-Allow-Headers:", "Content-Type, api_key, Authorization")
+	//http.ServeFile(w, r, "swagger.json")
+}
 var routes = Routes{
 	Route{
 		"Index",
@@ -43,6 +76,13 @@ var routes = Routes{
 		"/api/",
 		Index,
 	},
+	Route{
+		"Static",
+		"GET",
+		"/static/dist/{rest}",
+		Static,
+	},
+	//
 
 	Route{
 		"Clear",
