@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"fmt"
 	"github.com/gorilla/mux"
-
+	//rt "./controllers"
 )
 
 type Route struct {
@@ -28,6 +28,7 @@ func NewRouter() *mux.Router {
 			Path(route.Pattern).
 			Name(route.Name).
 			Handler(handler)
+			//Schemes("https, http")
 	}
 	return router
 }
