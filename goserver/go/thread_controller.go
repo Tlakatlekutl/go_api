@@ -19,7 +19,7 @@ func ThreadCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if (t.Created == "") {
+	if t.Created == "" {
 		t.Created="2017-08-22T01:30:51.934+03:00"
 	}
 	if err := t.ThreadCreateSQL(DB.DB); err != nil {

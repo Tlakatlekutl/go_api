@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/lib/pq"
-	//"strings"
 	"strings"
+	//"fmt"
+	"strconv"
 )
 
 const ForumTableCreationQuery =
@@ -56,4 +57,52 @@ func (f *Forum) GetForumByUniqueNickname(db * sql.DB) error {
 func (f *Forum) GetForumByUniqueSlug(db * sql.DB) error {
 	return db.QueryRow("SELECT title, userPk, slug, posts, threads FROM forum WHERE lower(slug)=$1",
 		strings.ToLower(f.Slug)).Scan(&f.Title, &f.User, &f.Slug, &f.Posts, &f.Threads)
+}
+
+func (f *Forum) ForumGetListThreadsSQL(db *sql.DB, limit, since, desc string) ([]Thread, error) {
+	queryRow := `SELECT id, title, author, forum, message, votes, slug, created FROM thread WHERE lower(forum)=$1`
+
+	var params []interface{}
+	params = append(params, strings.ToLower(f.Slug))
+	paramOffset := 2
+	if since != "" && desc == "true"{
+		queryRow += ` AND created <= $`+strconv.Itoa(paramOffset)
+		params = append(params, since)
+		paramOffset+=1
+	} else if since !="" {
+		queryRow += ` AND created >= $`+strconv.Itoa(paramOffset)
+		params = append(params, since)
+		paramOffset+=1
+	}
+	if desc == "true" {
+		queryRow += ` ORDER BY created DESC`
+	} else {
+		queryRow += ` ORDER BY created ASC`
+	}
+	if limit != "" {
+		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		params = append(params, limit)
+		paramOffset+=1
+	}
+
+
+	rows, err := db.Query(queryRow, params...)
+	//fmt.Println(queryRow, "params", params)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	threads := []Thread{}
+	for rows.Next() {
+		var t Thread
+		if err := rows.Scan(&t.ID, &t.Title, &t.Author, &t.Forum, &t.Message,&t.Votes, &t.Slug, &t.Created); err!=nil {
+			return nil, err
+		}
+		threads = append(threads, t)
+	}
+	//if len(threads)==0 {
+	//	return nil, sql.ErrNoRows
+	//}
+	return threads, nil
 }

@@ -15,7 +15,7 @@ const ThreadTableCreationQuery =
 		message TEXT NOT NULL ,
 		votes INT NOT NULL DEFAULT 0,
 		slug VARCHAR(25) NOT NULL,
-		created TIMESTAMP NOT NULL DEFAULT current_timestamp
+		created TIMESTAMPTZ NOT NULL DEFAULT current_timestamp
 	);
 	CREATE UNIQUE INDEX IF NOT EXISTS forum_slug_ci_index ON forum ((lower(slug)));
 -- 	CREATE UNIQUE INDEX IF NOT EXISTS user_nickname_ci_index ON users ((lower(nickname)));`
@@ -48,3 +48,4 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 	}
 	return err
 }
+
