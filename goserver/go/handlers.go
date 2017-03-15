@@ -2,7 +2,7 @@ package server
 
 import (
 	"net/http"
-	"github.com/gorilla/mux"
+	//"github.com/gorilla/mux"
 	//"encoding/json"
 )
 
@@ -34,22 +34,22 @@ func ForumGetUsers(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 }
 
-func PostGetOne(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-	        w.Write([]byte("hello"))
-		w.Write([]byte(mux.Vars(r)["id"]))
-}
-
-func PostUpdate(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-}
-
-func PostsCreate(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-}
+//func PostGetOne(w http.ResponseWriter, r *http.Request) {
+//		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+//		w.WriteHeader(http.StatusOK)
+//	        w.Write([]byte("hello"))
+//		w.Write([]byte(mux.Vars(r)["id"]))
+//}
+//
+//func PostUpdate(w http.ResponseWriter, r *http.Request) {
+//		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+//		w.WriteHeader(http.StatusOK)
+//}
+//
+//func PostsCreate(w http.ResponseWriter, r *http.Request) {
+//		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+//		w.WriteHeader(http.StatusOK)
+//}
 
 func Status(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")

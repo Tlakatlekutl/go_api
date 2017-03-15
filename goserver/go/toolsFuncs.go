@@ -8,6 +8,8 @@ import (
 	"fmt"
 	md "./models"
 	"database/sql"
+//	"strings"
+	"strconv"
 )
 
 func RespondError(w http.ResponseWriter, code int, message string) {
@@ -63,11 +65,19 @@ func PrintObject(t interface{})  {
 func CheckDbErr(err error, w http.ResponseWriter) {
 	switch err {
 	case sql.ErrNoRows:
-		RespondError(w, http.StatusNotFound, "Empty DB response")
+		RespondError(w, http.StatusNotFound, err.Error())
 	case md.UniqueError:
 		RespondError(w, http.StatusConflict, err.Error())
 
 	default:
 		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+}
+
+func IsId(pk string) (int, error) {
+	if val, err:= strconv.Atoi(pk); err!=nil {
+		return -1, err
+	} else {
+		return val, nil
 	}
 }

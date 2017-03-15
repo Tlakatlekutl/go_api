@@ -87,7 +87,7 @@ func (f *Forum) ForumGetListThreadsSQL(db *sql.DB, limit, since, desc string) ([
 
 
 	rows, err := db.Query(queryRow, params...)
-	//fmt.Println(queryRow, "params", params)
+
 	if err != nil {
 		return nil, err
 	}
@@ -101,8 +101,6 @@ func (f *Forum) ForumGetListThreadsSQL(db *sql.DB, limit, since, desc string) ([
 		}
 		threads = append(threads, t)
 	}
-	//if len(threads)==0 {
-	//	return nil, sql.ErrNoRows
-	//}
+
 	return threads, nil
 }

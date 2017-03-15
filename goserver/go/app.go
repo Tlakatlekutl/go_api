@@ -36,5 +36,11 @@ func (d *DataBase)CreateTables() {
 	if _, err := d.DB.Exec(md.ThreadTableCreationQuery); err != nil {
 		log.Fatal(err)
 	}
+	if _, err := d.DB.Exec(md.PostTableCreationQuery); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := d.DB.Exec(md.VoteTableCreationQuery); err != nil {
+		log.Fatal(err)
+	}
 }
 
