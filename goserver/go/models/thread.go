@@ -67,28 +67,20 @@ func (t *Thread) ThreadSelectOneIdOrSlugSQL(db *sql.DB) error {
 }
 
 func (t *Thread) ThreadGetOneSQL(db *sql.DB) error {
-	return db.QueryRow("SELECT id, title, author, forum, message, slug,created FROM thread WHERE lower(slug)=$1",
+	return db.QueryRow("SELECT id, title, author, forum, message, slug, created FROM thread WHERE lower(slug)=$1",
 		strings.ToLower(t.Slug)).Scan(&t.ID, &t.Title, &t.Author, &t.Forum, &t.Message, &t.Slug, &t.Created)
 }
 func (t *Thread) ThreadVoteSQL(db *sql.DB, voice int) error {
 	return db.QueryRow("UPDATE thread SET votes = thread.votes + ($1)  WHERE id = $2 RETURNING votes", voice, t.ID).Scan(&t.Votes)
 }
 
-func (t *Thread) ThreadGetListsPostsSQL(db *sql.DB, limit, since, desc string) ([]Post, error) {
-	queryRow := `SELECT id, title, author, forum, message, votes, slug, created FROM thread WHERE lower(forum)=$1`
+func (t *Thread) ThreadGetPostsFlatSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
+	queryRow := `SELECT id, parent, author, message, isEdited, forum, thread,  created FROM post WHERE thread=$1`
 
 	var params []interface{}
-	params = append(params, strings.ToLower(f.Slug))
+	params = append(params, t.ID)
 	paramOffset := 2
-	if since != "" && desc == "true"{
-		queryRow += ` AND created <= $`+strconv.Itoa(paramOffset)
-		params = append(params, since)
-		paramOffset+=1
-	} else if since !="" {
-		queryRow += ` AND created >= $`+strconv.Itoa(paramOffset)
-		params = append(params, since)
-		paramOffset+=1
-	}
+
 	if desc == "true" {
 		queryRow += ` ORDER BY created DESC`
 	} else {
@@ -99,7 +91,11 @@ func (t *Thread) ThreadGetListsPostsSQL(db *sql.DB, limit, since, desc string) (
 		params = append(params, limit)
 		paramOffset+=1
 	}
-
+	if offset != 0 {
+		queryRow += ` OFFSET $`+strconv.Itoa(paramOffset)
+		params = append(params, offset)
+		paramOffset+=1
+	}
 
 	rows, err := db.Query(queryRow, params...)
 
@@ -108,15 +104,115 @@ func (t *Thread) ThreadGetListsPostsSQL(db *sql.DB, limit, since, desc string) (
 	}
 	defer rows.Close()
 
-	threads := []Thread{}
+	posts := []Post{}
 	for rows.Next() {
-		var t Thread
-		if err := rows.Scan(&t.ID, &t.Title, &t.Author, &t.Forum, &t.Message,&t.Votes, &t.Slug, &t.Created); err!=nil {
+		var p Post
+		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err!=nil {
 			return nil, err
 		}
-		threads = append(threads, t)
+		posts = append(posts, p)
 	}
 
-	return threads, nil
+	return posts, nil
 }
 
+func (t *Thread) ThreadGetPostsTreeSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
+	queryRow := `WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
+    SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0
+    UNION
+      SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
+         JOIN tree ON post.parent = tree.id
+      WHERE post.thread = $1
+) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree
+`
+
+	var params []interface{}
+	params = append(params, t.ID)
+	paramOffset := 2
+
+	if desc == "true" {
+		queryRow += ` ORDER BY path DESC`
+	} else {
+		queryRow += ` ORDER BY path, created ASC`
+	}
+	if limit != "" {
+		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		params = append(params, limit)
+		paramOffset+=1
+	}
+	if offset != 0 {
+		queryRow += ` OFFSET $`+strconv.Itoa(paramOffset)
+		params = append(params, offset)
+		paramOffset+=1
+	}
+
+	rows, err := db.Query(queryRow, params...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err!=nil {
+			return nil, err
+		}
+		posts = append(posts, p)
+	}
+
+	return posts, nil
+}
+
+func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
+	queryRow := `WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
+    (SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0`
+
+	endQueryRow := ""
+	var params []interface{}
+	params = append(params, t.ID)
+	paramOffset := 2
+
+	if desc == "true" {
+		queryRow += ` ORDER BY id DESC`
+		endQueryRow+= ` ORDER BY path DESC`
+	} else {
+		queryRow += ` ORDER BY id ASC`
+		endQueryRow += ` ORDER BY path ASC`
+	}
+	if limit != "" {
+		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		params = append(params, limit)
+		paramOffset+=1
+	}
+	if offset != 0 {
+		queryRow += ` OFFSET $`+strconv.Itoa(paramOffset)
+		params = append(params, offset)
+		paramOffset+=1
+	}
+	queryRow+=`)
+	UNION
+	SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
+	JOIN tree ON post.parent = tree.id
+	WHERE post.thread = $1
+	) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree` + endQueryRow
+
+	rows, err := db.Query(queryRow, params...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	posts := []Post{}
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err!=nil {
+			return nil, err
+		}
+		posts = append(posts, p)
+	}
+
+	return posts, nil
+}

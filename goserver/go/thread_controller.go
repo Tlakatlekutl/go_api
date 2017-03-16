@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	md "./models"
 	//"fmt"
+	"strconv"
 )
 
 
@@ -30,7 +31,7 @@ func ThreadCreate(w http.ResponseWriter, r *http.Request) {
 	t.Forum = f.Slug
 
 	if t.Created == "" {
-		t.Created="2017-08-22T01:30:51.934+03:00"
+		t.Created="1970-01-01T00:00:00.000Z"
 	}
 
 	if err := t.ThreadCreateSQL(DB.DB); err != nil {
@@ -69,36 +70,84 @@ func ThreadGetOne(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type PostsResponse struct {
+	Marker string `json:"marker, omitempty"`
+	Posts []md.Post `json:"posts"`
+}
 func ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
-	var sg string = mux.Vars(r)["slug"]
+	var ppk string = mux.Vars(r)["slug_or_id"]
+	t:=md.Thread{}
+
+	if id, err := IsId(ppk); err==nil {
+		t.ID = id
+	} else {
+		t.Slug = ppk
+	}
+	if err := t.ThreadSelectOneIdOrSlugSQL(DB.DB); err != nil {
+		CheckDbErr(err, w)
+		return
+	}
 
 	queryParams := r.URL.Query()
 	var limit string
 	if val, ok := queryParams["limit"]; ok {
 		limit = val[0]
 	}
-	var since string
-	if val, ok := queryParams["since"]; ok {
-		since = val[0]
+	var marker int
+	if val, ok := queryParams["marker"]; ok {
+		marker, _ = strconv.Atoi(val[0])
+	}
+	var sort string
+	if val, ok := queryParams["sort"]; ok {
+		sort = val[0]
 	}
 	var desc string
 	if val, ok := queryParams["desc"]; ok {
 		desc = val[0]
 	}
 
-	//fmt.Println(limit, since, desc)
+	if sort == "flat" || sort =="" {
+		if posts, err := t.ThreadGetPostsFlatSQL(DB.DB, limit, desc, marker); err == nil {
+			if len(posts)!=0 {
+				l,_ := strconv.Atoi(limit)
+				marker+=l
+			}
+			resp := PostsResponse{Marker: strconv.Itoa(marker),Posts: posts}
+			RespondJSON(w, http.StatusOK, resp)
+			return
+		} else {
+			CheckDbErr(err, w)
+			return
+		}
+	} else if sort=="tree" {
+		if posts, err := t.ThreadGetPostsTreeSQL(DB.DB, limit, desc, marker); err == nil {
+			if len(posts)!=0 {
+				l,_ := strconv.Atoi(limit)
+				marker+=l
+			}
+			resp := PostsResponse{Marker: strconv.Itoa(marker),Posts: posts}
+			RespondJSON(w, http.StatusOK, resp)
+			return
+		} else {
+			CheckDbErr(err, w)
+			return
+		}
+	} else if sort=="parent_tree" {
+		if posts, err := t.ThreadGetPostsParentTreeSQL(DB.DB, limit, desc, marker); err == nil {
+			if len(posts)!=0 {
+				l,_ := strconv.Atoi(limit)
+				marker+=l
+			}
+			resp := PostsResponse{Marker: strconv.Itoa(marker),Posts: posts}
+			RespondJSON(w, http.StatusOK, resp)
+			return
+		} else {
+			CheckDbErr(err, w)
+			return
+		}
+	}
 
-	f := md.Forum{Slug: sg}
-	if err := f.GetForumByUniqueSlug(DB.DB); err!=nil {
-		CheckDbErr(err, w)
-		return
-	}
-	if threads, err := f.ForumGetListThreadsSQL(DB.DB, limit, since, desc); err != nil {
-		CheckDbErr(err, w)
-		return
-	} else {
-		RespondJSON(w, http.StatusOK, threads)
-	}
+
 }
 
 func ThreadUpdate(w http.ResponseWriter, r *http.Request) {

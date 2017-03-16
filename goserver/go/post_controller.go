@@ -45,6 +45,9 @@ func PostsCreate(w http.ResponseWriter, r *http.Request) {
 	for i:=0; i < len(pa); i+=1 {
 		pa[i].Thread = t.ID
 		pa[i].Forum = t.Forum
+		//if pa[i].Created == ""{
+		//	pa[i].Created = "1970-01-01T00:00:00.000Z"
+		//}
 
 		if err := pa[i].PostCreateOneSQL(DB.DB); err != nil {
 			CheckDbErr(err, w)

@@ -34,8 +34,10 @@ type Post struct {
 
 func (p *Post) PostCreateOneSQL(db *sql.DB) error  {
 	err := db.QueryRow(
-		"INSERT INTO post(parent, author, message, isedited, forum, thread) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
-		p.Parent, p.Author, p.Message, p.IsEdited, p.Forum, p.Thread).Scan(&p.Id)
+		//"INSERT INTO post(parent, author, message, isedited, forum, thread, created) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		//p.Parent, p.Author, p.Message, p.IsEdited, p.Forum, p.Thread, p.Created).Scan(&p.Id)
+		"INSERT INTO post(parent, author, message, isedited, forum, thread) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, created",
+	p.Parent, p.Author, p.Message, p.IsEdited, p.Forum, p.Thread).Scan(&p.Id, &p.Created)
 	if err!=nil {
 		switch err.(*pq.Error).Code {
 		case pq.ErrorCode("23505"):
