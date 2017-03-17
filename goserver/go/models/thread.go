@@ -38,9 +38,15 @@ type Thread struct {
 }
 
 func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
-	err := db.QueryRow(
+	tx, err := db.Begin()
+	if err!=nil {
+		tx.Rollback()
+		return err
+	}
+	err = tx.QueryRow(
 		"INSERT INTO thread(title, author, forum, message, slug, created ) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
 		t.Title, t.Author, t.Forum, t.Message, t.Slug, t.Created).Scan(&t.ID)
+
 	if err!=nil {
 		switch err.(*pq.Error).Code {
 		case pq.ErrorCode("23505"):
@@ -50,7 +56,16 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 		default:
 			return err
 		}
+		tx.Rollback()
+		return err
 	}
+	_, err =tx.Exec("UPDATE forum SET threads=threads+1 WHERE lower(slug)=$1", strings.ToLower(t.Forum))
+	if err!=nil {
+		tx.Rollback()
+		return err
+	}
+	err = tx.Commit()
+
 	return err
 }
 
@@ -70,6 +85,7 @@ func (t *Thread) ThreadGetOneSQL(db *sql.DB) error {
 	return db.QueryRow("SELECT id, title, author, forum, message, slug, created FROM thread WHERE lower(slug)=$1",
 		strings.ToLower(t.Slug)).Scan(&t.ID, &t.Title, &t.Author, &t.Forum, &t.Message, &t.Slug, &t.Created)
 }
+
 func (t *Thread) ThreadVoteSQL(db *sql.DB, voice int) error {
 	return db.QueryRow("UPDATE thread SET votes = thread.votes + ($1)  WHERE id = $2 RETURNING votes", voice, t.ID).Scan(&t.Votes)
 }
@@ -215,4 +231,57 @@ func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, off
 	}
 
 	return posts, nil
+}
+
+func (t *Thread)ThreadUpdateSQL(db *sql.DB) error {
+	queryRow := "UPDATE thread SET "
+
+	var params []interface{}
+	paramOffset := 1
+
+	if t.Message != "" {
+		queryRow += ` message=$`+strconv.Itoa(paramOffset)
+		params = append(params, t.Message)
+		paramOffset+=1
+	}
+	if t.Title != "" {
+		if paramOffset == 2 {
+			queryRow+=`,`
+		}
+		queryRow += ` title=$`+strconv.Itoa(paramOffset)
+		params = append(params, t.Title)
+		paramOffset+=1
+	}
+	if t.ID != 0 {
+		queryRow += ` WHERE id=$`+strconv.Itoa(paramOffset)
+		params = append(params, t.ID)
+	} else if t.Slug !="" {
+		queryRow += ` WHERE lower(slug)=$`+strconv.Itoa(paramOffset)
+		params = append(params, strings.ToLower(t.Slug))
+	} else {
+		return errors.New("sasd")
+	}
+
+	queryRow += " RETURNING id, title, author, forum, message, slug, votes, created"
+	err := db.QueryRow(queryRow, params...).Scan(&t.ID, &t.Title, &t.Author, &t.Forum, &t.Message, &t.Slug, &t.Votes, &t.Created)
+
+	if err!=nil {
+		if err != sql.ErrNoRows {
+			switch err.(*pq.Error).Code {
+			case pq.ErrorCode("23505"):
+				return UniqueError
+			default:
+				return err
+			}
+		}
+		return err
+	}
+
+	return nil
+}
+
+func ThreadCount(db *sql.DB) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM thread").Scan(&count)
+	return count, err
 }

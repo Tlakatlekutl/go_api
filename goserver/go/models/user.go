@@ -90,3 +90,9 @@ func (u *User) UpdateUserSQL(db *sql.DB) error {
 func (u *User) GetUsersListSQL(db *sql.DB, start, count int) ([]User, error) {
 	return nil, errors.New("Not implemented")
 }
+
+func UserCount(db *sql.DB) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}

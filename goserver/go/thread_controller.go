@@ -151,8 +151,38 @@ func ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func ThreadUpdate(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	var ppk string = mux.Vars(r)["slug_or_id"]
+	t:=md.Thread{}
+
+	if id, err := IsId(ppk); err==nil {
+		t.ID = id
+	} else {
+		t.Slug = ppk
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&t); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid parse thread update json")
+		return
+	}
+	defer r.Body.Close()
+	if t.Message=="" && t.Title==""{
+		if err := t.ThreadSelectOneIdOrSlugSQL(DB.DB); err != nil {
+			CheckDbErr(err, w)
+			return
+		}
+		RespondJSON(w, http.StatusOK, t)
+		return
+	}
+
+
+	if err := t.ThreadUpdateSQL(DB.DB); err != nil {
+		CheckDbErr(err, w)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, t)
+
 }
 
 func ThreadVote(w http.ResponseWriter, r *http.Request) {

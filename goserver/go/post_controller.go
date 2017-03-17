@@ -6,16 +6,44 @@ import (
 	"encoding/json"
 	md "./models"
 	//"fmt"
+	"strconv"
 )
 
+type SinglePostResponse struct {
+	Sp md.Post `json:"post"`
+}
+
 func PostGetOne(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	var sid string = mux.Vars(r)["id"]
+	id, _ := strconv.Atoi(sid)
+	p := md.Post{Id:id}
+	if err := p.PostGetOneSQL(DB.DB); err != nil {
+		CheckDbErr(err, w)
+		return
+	}
+	resp :=SinglePostResponse{Sp:p}
+	RespondJSON(w, http.StatusOK, resp)
 }
 
 func PostUpdate(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	var sid string = mux.Vars(r)["id"]
+	id, _ := strconv.Atoi(sid)
+	p := md.Post{Id:id}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&p); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid parse post update json")
+		return
+	}
+	defer r.Body.Close()
+
+
+	if err := p.PostUpdateSQL(DB.DB); err != nil {
+		CheckDbErr(err, w)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, p)
 }
 
 func PostsCreate(w http.ResponseWriter, r *http.Request) {
@@ -45,9 +73,6 @@ func PostsCreate(w http.ResponseWriter, r *http.Request) {
 	for i:=0; i < len(pa); i+=1 {
 		pa[i].Thread = t.ID
 		pa[i].Forum = t.Forum
-		//if pa[i].Created == ""{
-		//	pa[i].Created = "1970-01-01T00:00:00.000Z"
-		//}
 
 		if err := pa[i].PostCreateOneSQL(DB.DB); err != nil {
 			CheckDbErr(err, w)

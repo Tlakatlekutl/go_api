@@ -96,3 +96,35 @@ func ForumGetThreads(w http.ResponseWriter, r *http.Request) {
 		RespondJSON(w, http.StatusOK, threads)
 	}
 }
+
+func ForumGetUsers(w http.ResponseWriter, r *http.Request) {
+	var sg string = mux.Vars(r)["slug"]
+
+	queryParams := r.URL.Query()
+	var limit string
+	if val, ok := queryParams["limit"]; ok {
+		limit = val[0]
+	}
+	var since string
+	if val, ok := queryParams["since"]; ok {
+		since = val[0]
+	}
+	var desc string
+	if val, ok := queryParams["desc"]; ok {
+		desc = val[0]
+	}
+
+	//fmt.Println(limit, since, desc)
+
+	f := md.Forum{Slug: sg}
+	if err := f.GetForumByUniqueSlug(DB.DB); err!=nil {
+		CheckDbErr(err, w)
+		return
+	}
+	if users, err := f.ForumGetListUsersSQL(DB.DB, limit, since, desc); err != nil {
+		CheckDbErr(err, w)
+		return
+	} else {
+		RespondJSON(w, http.StatusOK, users)
+	}
+}

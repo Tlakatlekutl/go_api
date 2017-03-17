@@ -104,3 +104,61 @@ func (f *Forum) ForumGetListThreadsSQL(db *sql.DB, limit, since, desc string) ([
 
 	return threads, nil
 }
+
+func (f *Forum) ForumGetListUsersSQL(db *sql.DB, limit, since, desc string) ([]User, error) {
+	queryRow := `SELECT DISTINCT lower(nickname) COLLATE "ucs_basic", nickname, fullname, about, email FROM users u
+	LEFT JOIN thread t ON t.author=u.nickname
+	LEFT JOIN post p ON p.author=u.nickname
+	LEFT JOIN forum f ON f.userpk=u.nickname
+	WHERE (lower(t.forum)=$1 OR lower(p.forum) = $1 OR lower(f.userpk)=$1)`
+
+	var params []interface{}
+	params = append(params, strings.ToLower(f.Slug))
+
+	paramOffset := 2
+	if since != "" && desc == "true"{
+		queryRow += ` AND lower(nickname) COLLATE "ucs_basic" < lower($`+strconv.Itoa(paramOffset)+`) COLLATE "ucs_basic"`
+		params = append(params, since)
+		paramOffset+=1
+	} else if since !="" {
+		queryRow += ` AND lower(nickname) COLLATE "ucs_basic" > lower($`+strconv.Itoa(paramOffset)+`) COLLATE "ucs_basic"`
+		params = append(params, since)
+		paramOffset+=1
+	}
+
+	if desc == "true" {
+		queryRow += ` ORDER BY lower(nickname) COLLATE "ucs_basic" DESC`
+	} else {
+		queryRow += ` ORDER BY lower(nickname) COLLATE "ucs_basic" ASC`
+	}
+	if limit != "" {
+		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		params = append(params, limit)
+		paramOffset+=1
+	}
+
+	rows, err := db.Query(queryRow, params...)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	users := []User{}
+	for rows.Next() {
+		var u User
+		var temp string
+		if err := rows.Scan(&temp, &u.Nickname, &u.Fullname, &u.About, &u.Email); err!=nil {
+			return nil, err
+		}
+		users = append(users, u)
+	}
+
+	return users, nil
+}
+
+func ForumCount(db *sql.DB) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM forum").Scan(&count)
+	return count, err
+}

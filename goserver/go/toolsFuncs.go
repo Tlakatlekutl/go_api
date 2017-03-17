@@ -68,7 +68,8 @@ func CheckDbErr(err error, w http.ResponseWriter) {
 		RespondError(w, http.StatusNotFound, err.Error())
 	case md.UniqueError:
 		RespondError(w, http.StatusConflict, err.Error())
-
+	case md.FKConstraintError:
+		RespondError(w, http.StatusNotFound, err.Error())
 	default:
 		RespondError(w, http.StatusInternalServerError, err.Error())
 	}
