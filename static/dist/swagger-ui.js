@@ -4578,7 +4578,7 @@ Resolver.prototype.processAllOf = function(root, name, definition, resolutionTab
 
   definition['x-resolved-from'] = [ '#/definitions/' + name ];
   var allOf = definition.allOf;
-  // the refs go first
+  // the refs server first
   allOf.sort(function(a, b) {
     if(a.$ref && b.$ref) { return 0; }
     else if(a.$ref) { return -1; }
@@ -8760,7 +8760,7 @@ function utf8Slice (buf, start, end) {
 
 // Based on http://stackoverflow.com/a/22747272/680742, the browser with
 // the lowest limit is Chrome, with 0x10000 args.
-// We go 1 magnitude less, for safety
+// We server 1 magnitude less, for safety
 var MAX_ARGUMENTS_LENGTH = 0x1000
 
 function decodeCodePointsArray (codePoints) {
@@ -9691,7 +9691,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 			return encode(num >> 18 & 0x3F) + encode(num >> 12 & 0x3F) + encode(num >> 6 & 0x3F) + encode(num & 0x3F)
 		}
 
-		// go through the array every three bytes, we'll deal with trailing stuff later
+		// server through the array every three bytes, we'll deal with trailing stuff later
 		for (i = 0, length = uint8.length - extraBytes; i < length; i += 3) {
 			temp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
 			output += tripletToBase64(temp)
@@ -11900,7 +11900,7 @@ function readBlockScalar(state, nodeIndent) {
         }
       }
 
-      // Break this `while` cycle and go to the funciton's epilogue.
+      // Break this `while` cycle and server to the funciton's epilogue.
       break;
     }
 

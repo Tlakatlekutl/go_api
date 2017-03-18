@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"fmt"
 	"github.com/gorilla/mux"
-	//rt "./controllers"
 )
 
 type Route struct {

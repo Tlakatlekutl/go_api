@@ -46,8 +46,8 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 		return err
 	}
 	err = tx.QueryRow(
-		"INSERT INTO thread(title, author, forum, message, slug, created ) VALUES($1, $2, $3, $4, $5, $6) RETURNING id",
-		t.Title, t.Author, t.Forum, t.Message, t.Slug, t.Created).Scan(&t.ID)
+		"INSERT INTO thread(title, author, forum, message, slug, created ) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, created",
+		t.Title, t.Author, t.Forum, t.Message, t.Slug, t.Created).Scan(&t.ID, &t.Created)
 
 	if err!=nil {
 		switch err.(*pq.Error).Code {
