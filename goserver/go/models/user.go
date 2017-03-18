@@ -10,7 +10,6 @@ import (
 const UserTableCreationQuery =
 	`CREATE TABLE IF NOT EXISTS users
 	(
--- 		id SERIAL NOT NULL PRIMARY KEY,
 		nickname VARCHAR(25) PRIMARY KEY,
 		fullname VARCHAR(60),
 		email VARCHAR(50) NOT NULL UNIQUE,

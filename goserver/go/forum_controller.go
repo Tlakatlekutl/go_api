@@ -9,12 +9,6 @@ import (
 	//"fmt"
 )
 
-func Clear(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
-}
-
 func ForumCreate(w http.ResponseWriter, r *http.Request) {
 	f := md.Forum{}
 
@@ -113,8 +107,6 @@ func ForumGetUsers(w http.ResponseWriter, r *http.Request) {
 	if val, ok := queryParams["desc"]; ok {
 		desc = val[0]
 	}
-
-	//fmt.Println(limit, since, desc)
 
 	f := md.Forum{Slug: sg}
 	if err := f.GetForumByUniqueSlug(DB.DB); err!=nil {

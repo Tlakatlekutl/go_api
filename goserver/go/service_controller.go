@@ -37,5 +37,25 @@ func Status(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func Clear(w http.ResponseWriter, r *http.Request) {
+	if _, err := DB.DB.Exec("DELETE FROM vote"); err!=nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+	if _, err := DB.DB.Exec("DELETE FROM post"); err!=nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+	if _, err := DB.DB.Exec("DELETE FROM thread"); err!=nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+	if _, err := DB.DB.Exec("DELETE FROM forum"); err!=nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+	if _, err := DB.DB.Exec("DELETE FROM users"); err!=nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
+	RespondJSON(w, http.StatusOK, nil)
+
+}
+
 
 

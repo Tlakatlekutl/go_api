@@ -12,14 +12,14 @@ import (
 const ForumTableCreationQuery =
 	`CREATE TABLE IF NOT EXISTS forum
 	(
--- 		id SERIAL NOT NULL PRIMARY KEY,
 		title VARCHAR(200) NOT NULL,
-		userPK VARCHAR(25) REFERENCES users(nickname),
+		userPK VARCHAR(25) REFERENCES users(nickname) ON DELETE CASCADE,
 		slug VARCHAR(50) PRIMARY KEY,
 		posts INT DEFAULT 0,
 		threads INT DEFAULT 0
 	);
-	CREATE UNIQUE INDEX IF NOT EXISTS forum_slug_ci_index ON forum ((lower(slug)));`
+	CREATE UNIQUE INDEX IF NOT EXISTS forum_slug_ci_index ON forum ((lower(slug)));
+	CREATE UNIQUE INDEX IF NOT EXISTS forum_pk_index ON forum (lower(userPK));`
 
 var FKConstraintError = errors.New("violates foreign key constraint")
 

@@ -5,12 +5,15 @@ import (
 	"github.com/gorilla/mux"
 	"encoding/json"
 	md "./models"
-	//"fmt"
 	"strconv"
+	"strings"
 )
 
 type SinglePostResponse struct {
 	Sp md.Post `json:"post"`
+	Ath *md.User `json:"author,omitempty,-"`
+	Forum *md.Forum `json:"forum,omitempty"`
+	Thread *md.Thread `json:"thread,omitempty"`
 }
 
 func PostGetOne(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +24,37 @@ func PostGetOne(w http.ResponseWriter, r *http.Request) {
 		CheckDbErr(err, w)
 		return
 	}
-	resp :=SinglePostResponse{Sp:p}
+
+	resp := SinglePostResponse{Sp:p}
+
+	queryParams := r.URL.Query()
+	if related, ok := queryParams["related"]; ok {
+		params := strings.Split(related[0], ",")
+		for _, task :=range params {
+			var err error
+			switch task {
+			case "user":
+				u:=md.User{Nickname: p.Author}
+				err = u.GetOneUserSQL(DB.DB)
+				resp.Ath=&u
+
+			case "forum":
+				f:=md.Forum{Slug: p.Forum}
+				err = f.GetForumByUniqueSlug(DB.DB)
+				resp.Forum=&f
+			case "thread":
+				t:=md.Thread{ID: p.Thread}
+				err = t.ThreadSelectOneIdOrSlugSQL(DB.DB)
+				resp.Thread=&t
+			}
+			if err!= nil {
+				CheckDbErr(err, w)
+				return
+			}
+
+		}
+	}
+
 	RespondJSON(w, http.StatusOK, resp)
 }
 
@@ -36,6 +69,15 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	if p.Message=="" {
+		if err := p.PostGetOneSQL(DB.DB); err != nil {
+			CheckDbErr(err, w)
+			return
+		}
+		RespondJSON(w, http.StatusOK, p)
+		return
+	}
 
 
 	if err := p.PostUpdateSQL(DB.DB); err != nil {

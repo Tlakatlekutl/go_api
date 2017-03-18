@@ -12,14 +12,18 @@ const PostTableCreationQuery =
 	(
 		id SERIAL NOT NULL PRIMARY KEY,
 		parent INT NOT NULL DEFAULT 0,
-		author VARCHAR(25) NOT NULL REFERENCES users(nickname),
+		author VARCHAR(25) NOT NULL REFERENCES users(nickname) ON DELETE CASCADE,
 		message TEXT NOT NULL ,
 		isEdited BOOLEAN DEFAULT FALSE ,
-		forum VARCHAR(50) NOT NULL REFERENCES forum(slug),
-		thread INT NOT NULL REFERENCES thread(id),
+		forum VARCHAR(50) NOT NULL REFERENCES forum(slug) ON DELETE CASCADE,
+		thread INT NOT NULL REFERENCES thread(id) ON DELETE CASCADE,
 		created TIMESTAMPTZ DEFAULT current_timestamp
 	);
--- 	CREATE UNIQUE INDEX IF NOT EXISTS user_email_ci_index ON users ((lower(email)));`
+ 	CREATE INDEX IF NOT EXISTS post_author_ci_index ON post((lower(author)));
+ 	CREATE INDEX IF NOT EXISTS post_forum_ci_index ON post ((lower(forum)));
+ 	CREATE INDEX IF NOT EXISTS post_thread_ci_index ON post (thread);
+ 	CREATE UNIQUE INDEX IF NOT EXISTS post_id_parent_index ON post (id, parent);
+ 	CREATE UNIQUE INDEX IF NOT EXISTS post_id_index ON post(id);`
 
 type Post struct {
 	Id int `json:"id"`
@@ -77,7 +81,7 @@ func (p *Post)PostGetOneSQL(db *sql.DB) error {
 }
 
 func (p *Post)PostUpdateSQL(db *sql.DB) error {
-	return db.QueryRow("UPDATE post SET message=$2, isedited=TRUE WHERE id=$1 RETURNING parent, author, isedited, forum, thread, created", p.Id, p.Message).Scan(
+	return db.QueryRow("UPDATE post SET message=$2, isedited=(message != $2) WHERE id=$1 RETURNING parent, author, isedited, forum, thread, created", p.Id, p.Message).Scan(
 		&p.Parent, &p.Author, &p.IsEdited, &p.Forum, &p.Thread, &p.Created)
 }
 

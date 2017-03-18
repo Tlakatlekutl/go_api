@@ -15,15 +15,17 @@ const ThreadTableCreationQuery =
 	(
 		id SERIAL NOT NULL PRIMARY KEY,
 		title VARCHAR(100),
-		author VARCHAR(25) REFERENCES users(nickname),
-		forum VARCHAR(50) REFERENCES forum(slug),
+		author VARCHAR(25) REFERENCES users(nickname) ON DELETE CASCADE ,
+		forum VARCHAR(50) REFERENCES forum(slug) ON DELETE CASCADE,
 		message TEXT NOT NULL ,
 		votes INT NOT NULL DEFAULT 0,
 		slug VARCHAR(25) NOT NULL,
 		created TIMESTAMPTZ NOT NULL DEFAULT current_timestamp
 	);
 	CREATE UNIQUE INDEX IF NOT EXISTS thread_slug_ci_index ON thread (lower(slug)) WHERE slug != '';
--- 	--CREATE UNIQUE INDEX IF NOT EXISTS user_nickname_ci_index ON users ((lower(nickname)));`
+	CREATE INDEX IF NOT EXISTS thread_author_ci_index ON thread (lower(author));
+	CREATE INDEX IF NOT EXISTS thread_forum_ci_index ON thread (lower(forum));
+	CREATE UNIQUE INDEX IF NOT EXISTS thread_id_index ON thread (id);`
 
 
 type Thread struct {
