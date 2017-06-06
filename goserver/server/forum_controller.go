@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 	//"github.com/gorilla/mux"
-	"encoding/json"
 	md "./models"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	//"fmt"
 )
@@ -79,7 +79,7 @@ func ForumGetThreads(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println(limit, since, desc)
 
 	f := md.Forum{Slug: sg}
-	if err := f.GetForumByUniqueSlug(DB.DB); err!=nil {
+	if err := f.GetForumByUniqueSlug(DB.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
@@ -109,7 +109,7 @@ func ForumGetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := md.Forum{Slug: sg}
-	if err := f.GetForumByUniqueSlug(DB.DB); err!=nil {
+	if err := f.GetForumByUniqueSlug(DB.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}

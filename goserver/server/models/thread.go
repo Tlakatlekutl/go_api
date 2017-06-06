@@ -3,15 +3,14 @@ package models
 import (
 	"database/sql"
 	"github.com/lib/pq"
-//	"strings"
+	//	"strings"
 	"errors"
 	//"fmt"
-	"strings"
 	"strconv"
+	"strings"
 )
 
-const ThreadTableCreationQuery =
-	`CREATE TABLE IF NOT EXISTS thread
+const ThreadTableCreationQuery = `CREATE TABLE IF NOT EXISTS thread
 	(
 		id SERIAL NOT NULL PRIMARY KEY,
 		title VARCHAR(100),
@@ -27,21 +26,20 @@ const ThreadTableCreationQuery =
 	CREATE INDEX IF NOT EXISTS thread_forum_ci_index ON thread (lower(forum));
 	CREATE UNIQUE INDEX IF NOT EXISTS thread_id_index ON thread (id);`
 
-
 type Thread struct {
-	ID int `json:"id"`
-	Title string `json:"title"`
-	Author string `json:"author"`
-	Forum string `json:"forum"`
+	ID      int    `json:"id"`
+	Title   string `json:"title"`
+	Author  string `json:"author"`
+	Forum   string `json:"forum"`
 	Message string `json:"message"`
-	Votes int `json:"votes, omitempty"`
-	Slug string `json:"slug"`
+	Votes   int    `json:"votes, omitempty"`
+	Slug    string `json:"slug"`
 	Created string `json:"created"`
 }
 
 func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 	tx, err := db.Begin()
-	if err!=nil {
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -49,7 +47,7 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 		"INSERT INTO thread(title, author, forum, message, slug, created ) VALUES($1, $2, $3, $4, $5, $6) RETURNING id, created",
 		t.Title, t.Author, t.Forum, t.Message, t.Slug, t.Created).Scan(&t.ID, &t.Created)
 
-	if err!=nil {
+	if err != nil {
 		switch err.(*pq.Error).Code {
 		case pq.ErrorCode("23505"):
 			return UniqueError
@@ -61,8 +59,8 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 		tx.Rollback()
 		return err
 	}
-	_, err =tx.Exec("UPDATE forum SET threads=threads+1 WHERE lower(slug)=$1", strings.ToLower(t.Forum))
-	if err!=nil {
+	_, err = tx.Exec("UPDATE forum SET threads=threads+1 WHERE lower(slug)=$1", strings.ToLower(t.Forum))
+	if err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -93,26 +91,26 @@ func (t *Thread) ThreadVoteSQL(db *sql.DB, voice int) error {
 }
 
 func (t *Thread) ThreadGetPostsFlatSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
-	queryRow := `SELECT id, parent, author, message, isEdited, forum, thread,  created FROM post WHERE thread=$1`
+	queryRow := `SELECT id, parent, author, message, isEdited, forum, thread, created FROM post WHERE thread=$1`
 
 	var params []interface{}
 	params = append(params, t.ID)
 	paramOffset := 2
 
 	if desc == "true" {
-		queryRow += ` ORDER BY created DESC`
+		queryRow += ` ORDER BY created DESC, id DESC`
 	} else {
-		queryRow += ` ORDER BY created ASC`
+		queryRow += ` ORDER BY created ASC, id ASC`
 	}
 	if limit != "" {
-		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		queryRow += ` LIMIT $` + strconv.Itoa(paramOffset)
 		params = append(params, limit)
-		paramOffset+=1
+		paramOffset += 1
 	}
 	if offset != 0 {
-		queryRow += ` OFFSET $`+strconv.Itoa(paramOffset)
+		queryRow += ` OFFSET $` + strconv.Itoa(paramOffset)
 		params = append(params, offset)
-		paramOffset+=1
+		paramOffset += 1
 	}
 
 	rows, err := db.Query(queryRow, params...)
@@ -125,7 +123,7 @@ func (t *Thread) ThreadGetPostsFlatSQL(db *sql.DB, limit, desc string, offset in
 	posts := []Post{}
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err!=nil {
+		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err != nil {
 			return nil, err
 		}
 		posts = append(posts, p)
@@ -135,33 +133,34 @@ func (t *Thread) ThreadGetPostsFlatSQL(db *sql.DB, limit, desc string, offset in
 }
 
 func (t *Thread) ThreadGetPostsTreeSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
-	queryRow := `WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
-    SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0
-    UNION
-      SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
-         JOIN tree ON post.parent = tree.id
-      WHERE post.thread = $1
-) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree
-`
+	queryRow := `SELECT id, parent, author, message, isEdited, forum, thread, created FROM post WHERE thread = $1`
+//`	queryRow := `WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
+//    SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0
+//    UNION
+//      SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
+//         JOIN tree ON post.parent = tree.id
+//      WHERE post.thread = $1
+//) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree
+//`
 
 	var params []interface{}
 	params = append(params, t.ID)
 	paramOffset := 2
 
 	if desc == "true" {
-		queryRow += ` ORDER BY path DESC`
+		queryRow += ` ORDER BY parentpath DESC`
 	} else {
-		queryRow += ` ORDER BY path, created ASC`
+		queryRow += ` ORDER BY parentpath, created ASC`
 	}
 	if limit != "" {
-		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		queryRow += ` LIMIT $` + strconv.Itoa(paramOffset)
 		params = append(params, limit)
-		paramOffset+=1
+		paramOffset += 1
 	}
 	if offset != 0 {
-		queryRow += ` OFFSET $`+strconv.Itoa(paramOffset)
+		queryRow += ` OFFSET $` + strconv.Itoa(paramOffset)
 		params = append(params, offset)
-		paramOffset+=1
+		paramOffset += 1
 	}
 
 	rows, err := db.Query(queryRow, params...)
@@ -174,7 +173,7 @@ func (t *Thread) ThreadGetPostsTreeSQL(db *sql.DB, limit, desc string, offset in
 	posts := []Post{}
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err!=nil {
+		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err != nil {
 			return nil, err
 		}
 		posts = append(posts, p)
@@ -184,8 +183,12 @@ func (t *Thread) ThreadGetPostsTreeSQL(db *sql.DB, limit, desc string, offset in
 }
 
 func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
-	queryRow := `WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
-    (SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0`
+	queryRow := `SELECT id, parent, author, message, isEdited, forum, thread, created FROM post
+WHERE thread = $1 AND parentPath[1] in (
+	SELECT id FROM post
+	WHERE thread = $1 AND array_length(parentPath, 1) = 1`
+//`WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
+//    (SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0`
 
 	endQueryRow := ""
 	var params []interface{}
@@ -194,27 +197,30 @@ func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, off
 
 	if desc == "true" {
 		queryRow += ` ORDER BY id DESC`
-		endQueryRow+= ` ORDER BY path DESC`
+		endQueryRow += ` ORDER BY parentPath DESC;`
 	} else {
 		queryRow += ` ORDER BY id ASC`
-		endQueryRow += ` ORDER BY path ASC`
+		endQueryRow += ` ORDER BY parentPath ASC;`
 	}
 	if limit != "" {
-		queryRow += ` LIMIT $`+strconv.Itoa(paramOffset)
+		queryRow += ` LIMIT $` + strconv.Itoa(paramOffset)
 		params = append(params, limit)
-		paramOffset+=1
+		paramOffset += 1
 	}
 	if offset != 0 {
-		queryRow += ` OFFSET $`+strconv.Itoa(paramOffset)
+		queryRow += ` OFFSET $` + strconv.Itoa(paramOffset)
 		params = append(params, offset)
-		paramOffset+=1
+		paramOffset += 1
 	}
-	queryRow+=`)
-	UNION
-	SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
-	JOIN tree ON post.parent = tree.id
-	WHERE post.thread = $1
-	) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree` + endQueryRow
+	queryRow += `)`
+
+	queryRow += endQueryRow
+
+	//UNION
+	//SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
+	//JOIN tree ON post.parent = tree.id
+	//WHERE post.thread = $1
+	//) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree` + endQueryRow
 
 	rows, err := db.Query(queryRow, params...)
 
@@ -226,7 +232,7 @@ func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, off
 	posts := []Post{}
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err!=nil {
+		if err := rows.Scan(&p.Id, &p.Parent, &p.Author, &p.Message, &p.IsEdited, &p.Forum, &p.Thread, &p.Created); err != nil {
 			return nil, err
 		}
 		posts = append(posts, p)
@@ -235,30 +241,30 @@ func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, off
 	return posts, nil
 }
 
-func (t *Thread)ThreadUpdateSQL(db *sql.DB) error {
+func (t *Thread) ThreadUpdateSQL(db *sql.DB) error {
 	queryRow := "UPDATE thread SET "
 
 	var params []interface{}
 	paramOffset := 1
 
 	if t.Message != "" {
-		queryRow += ` message=$`+strconv.Itoa(paramOffset)
+		queryRow += ` message=$` + strconv.Itoa(paramOffset)
 		params = append(params, t.Message)
-		paramOffset+=1
+		paramOffset += 1
 	}
 	if t.Title != "" {
 		if paramOffset == 2 {
-			queryRow+=`,`
+			queryRow += `,`
 		}
-		queryRow += ` title=$`+strconv.Itoa(paramOffset)
+		queryRow += ` title=$` + strconv.Itoa(paramOffset)
 		params = append(params, t.Title)
-		paramOffset+=1
+		paramOffset += 1
 	}
 	if t.ID != 0 {
-		queryRow += ` WHERE id=$`+strconv.Itoa(paramOffset)
+		queryRow += ` WHERE id=$` + strconv.Itoa(paramOffset)
 		params = append(params, t.ID)
-	} else if t.Slug !="" {
-		queryRow += ` WHERE lower(slug)=$`+strconv.Itoa(paramOffset)
+	} else if t.Slug != "" {
+		queryRow += ` WHERE lower(slug)=$` + strconv.Itoa(paramOffset)
 		params = append(params, strings.ToLower(t.Slug))
 	} else {
 		return errors.New("sasd")
@@ -267,7 +273,7 @@ func (t *Thread)ThreadUpdateSQL(db *sql.DB) error {
 	queryRow += " RETURNING id, title, author, forum, message, slug, votes, created"
 	err := db.QueryRow(queryRow, params...).Scan(&t.ID, &t.Title, &t.Author, &t.Forum, &t.Message, &t.Slug, &t.Votes, &t.Created)
 
-	if err!=nil {
+	if err != nil {
 		if err != sql.ErrNoRows {
 			switch err.(*pq.Error).Code {
 			case pq.ErrorCode("23505"):

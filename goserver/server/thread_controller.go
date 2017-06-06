@@ -1,14 +1,13 @@
 package server
 
 import (
-	"net/http"
-	"github.com/gorilla/mux"
-	"encoding/json"
 	md "./models"
+	"encoding/json"
+	"github.com/gorilla/mux"
+	"net/http"
 	//"fmt"
 	"strconv"
 )
-
 
 func ThreadCreate(w http.ResponseWriter, r *http.Request) {
 	var fsg string = mux.Vars(r)["slug"]
@@ -31,13 +30,13 @@ func ThreadCreate(w http.ResponseWriter, r *http.Request) {
 	t.Forum = f.Slug
 
 	if t.Created == "" {
-		t.Created="1970-01-01T00:00:00.000Z"
+		t.Created = "1970-01-01T00:00:00.000Z"
 	}
 
 	if err := t.ThreadCreateSQL(DB.DB); err != nil {
 		switch err {
 		case md.UniqueError:
-			if  err := t.ThreadGetOneSQL(DB.DB); err == nil {
+			if err := t.ThreadGetOneSQL(DB.DB); err == nil {
 				RespondJSON(w, http.StatusConflict, t)
 				return
 			}
@@ -55,9 +54,9 @@ func ThreadCreate(w http.ResponseWriter, r *http.Request) {
 
 func ThreadGetOne(w http.ResponseWriter, r *http.Request) {
 	var ppk string = mux.Vars(r)["slug_or_id"]
-	t:=md.Thread{}
+	t := md.Thread{}
 
-	if id, err := IsId(ppk); err==nil {
+	if id, err := IsId(ppk); err == nil {
 		t.ID = id
 	} else {
 		t.Slug = ppk
@@ -71,14 +70,15 @@ func ThreadGetOne(w http.ResponseWriter, r *http.Request) {
 }
 
 type PostsResponse struct {
-	Marker string `json:"marker, omitempty"`
-	Posts []md.Post `json:"posts"`
+	Marker string    `json:"marker, omitempty"`
+	Posts  []md.Post `json:"posts"`
 }
+
 func ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
 	var ppk string = mux.Vars(r)["slug_or_id"]
-	t:=md.Thread{}
+	t := md.Thread{}
 
-	if id, err := IsId(ppk); err==nil {
+	if id, err := IsId(ppk); err == nil {
 		t.ID = id
 	} else {
 		t.Slug = ppk
@@ -106,39 +106,39 @@ func ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
 		desc = val[0]
 	}
 
-	if sort == "flat" || sort =="" {
+	if sort == "flat" || sort == "" {
 		if posts, err := t.ThreadGetPostsFlatSQL(DB.DB, limit, desc, marker); err == nil {
-			if len(posts)!=0 {
-				l,_ := strconv.Atoi(limit)
-				marker+=l
+			if len(posts) != 0 {
+				l, _ := strconv.Atoi(limit)
+				marker += l
 			}
-			resp := PostsResponse{Marker: strconv.Itoa(marker),Posts: posts}
+			resp := PostsResponse{Marker: strconv.Itoa(marker), Posts: posts}
 			RespondJSON(w, http.StatusOK, resp)
 			return
 		} else {
 			CheckDbErr(err, w)
 			return
 		}
-	} else if sort=="tree" {
+	} else if sort == "tree" {
 		if posts, err := t.ThreadGetPostsTreeSQL(DB.DB, limit, desc, marker); err == nil {
-			if len(posts)!=0 {
-				l,_ := strconv.Atoi(limit)
-				marker+=l
+			if len(posts) != 0 {
+				l, _ := strconv.Atoi(limit)
+				marker += l
 			}
-			resp := PostsResponse{Marker: strconv.Itoa(marker),Posts: posts}
+			resp := PostsResponse{Marker: strconv.Itoa(marker), Posts: posts}
 			RespondJSON(w, http.StatusOK, resp)
 			return
 		} else {
 			CheckDbErr(err, w)
 			return
 		}
-	} else if sort=="parent_tree" {
+	} else if sort == "parent_tree" {
 		if posts, err := t.ThreadGetPostsParentTreeSQL(DB.DB, limit, desc, marker); err == nil {
-			if len(posts)!=0 {
-				l,_ := strconv.Atoi(limit)
-				marker+=l
+			if len(posts) != 0 {
+				l, _ := strconv.Atoi(limit)
+				marker += l
 			}
-			resp := PostsResponse{Marker: strconv.Itoa(marker),Posts: posts}
+			resp := PostsResponse{Marker: strconv.Itoa(marker), Posts: posts}
 			RespondJSON(w, http.StatusOK, resp)
 			return
 		} else {
@@ -147,14 +147,13 @@ func ThreadGetPosts(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-
 }
 
 func ThreadUpdate(w http.ResponseWriter, r *http.Request) {
 	var ppk string = mux.Vars(r)["slug_or_id"]
-	t:=md.Thread{}
+	t := md.Thread{}
 
-	if id, err := IsId(ppk); err==nil {
+	if id, err := IsId(ppk); err == nil {
 		t.ID = id
 	} else {
 		t.Slug = ppk
@@ -166,7 +165,7 @@ func ThreadUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	if t.Message=="" && t.Title==""{
+	if t.Message == "" && t.Title == "" {
 		if err := t.ThreadSelectOneIdOrSlugSQL(DB.DB); err != nil {
 			CheckDbErr(err, w)
 			return
@@ -174,7 +173,6 @@ func ThreadUpdate(w http.ResponseWriter, r *http.Request) {
 		RespondJSON(w, http.StatusOK, t)
 		return
 	}
-
 
 	if err := t.ThreadUpdateSQL(DB.DB); err != nil {
 		CheckDbErr(err, w)
@@ -187,9 +185,9 @@ func ThreadUpdate(w http.ResponseWriter, r *http.Request) {
 
 func ThreadVote(w http.ResponseWriter, r *http.Request) {
 	var ppk string = mux.Vars(r)["slug_or_id"]
-	t:=md.Thread{}
+	t := md.Thread{}
 
-	if id, err := IsId(ppk); err==nil {
+	if id, err := IsId(ppk); err == nil {
 		t.ID = id
 	} else {
 		t.Slug = ppk

@@ -1,53 +1,54 @@
 package server
 
 import (
-	"net/http"
-	"github.com/gorilla/mux"
-	"encoding/json"
 	md "./models"
+	"encoding/json"
+	"github.com/gorilla/mux"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type SinglePostResponse struct {
-	Sp md.Post `json:"post"`
-	Ath *md.User `json:"author,omitempty,-"`
-	Forum *md.Forum `json:"forum,omitempty"`
+	Sp     md.Post    `json:"post"`
+	Ath    *md.User   `json:"author,omitempty,-"`
+	Forum  *md.Forum  `json:"forum,omitempty"`
 	Thread *md.Thread `json:"thread,omitempty"`
 }
 
 func PostGetOne(w http.ResponseWriter, r *http.Request) {
 	var sid string = mux.Vars(r)["id"]
 	id, _ := strconv.Atoi(sid)
-	p := md.Post{Id:id}
+	p := md.Post{Id: id}
 	if err := p.PostGetOneSQL(DB.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
 
-	resp := SinglePostResponse{Sp:p}
+	resp := SinglePostResponse{Sp: p}
 
 	queryParams := r.URL.Query()
 	if related, ok := queryParams["related"]; ok {
 		params := strings.Split(related[0], ",")
-		for _, task :=range params {
+		for _, task := range params {
 			var err error
 			switch task {
 			case "user":
-				u:=md.User{Nickname: p.Author}
+				u := md.User{Nickname: p.Author}
 				err = u.GetOneUserSQL(DB.DB)
-				resp.Ath=&u
+				resp.Ath = &u
 
 			case "forum":
-				f:=md.Forum{Slug: p.Forum}
+				f := md.Forum{Slug: p.Forum}
 				err = f.GetForumByUniqueSlug(DB.DB)
-				resp.Forum=&f
+				resp.Forum = &f
 			case "thread":
-				t:=md.Thread{ID: p.Thread}
+				t := md.Thread{ID: p.Thread}
 				err = t.ThreadSelectOneIdOrSlugSQL(DB.DB)
-				resp.Thread=&t
+				resp.Thread = &t
 			}
-			if err!= nil {
+			if err != nil {
 				CheckDbErr(err, w)
 				return
 			}
@@ -61,7 +62,7 @@ func PostGetOne(w http.ResponseWriter, r *http.Request) {
 func PostUpdate(w http.ResponseWriter, r *http.Request) {
 	var sid string = mux.Vars(r)["id"]
 	id, _ := strconv.Atoi(sid)
-	p := md.Post{Id:id}
+	p := md.Post{Id: id}
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&p); err != nil {
@@ -70,7 +71,7 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if p.Message=="" {
+	if p.Message == "" {
 		if err := p.PostGetOneSQL(DB.DB); err != nil {
 			CheckDbErr(err, w)
 			return
@@ -78,7 +79,6 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 		RespondJSON(w, http.StatusOK, p)
 		return
 	}
-
 
 	if err := p.PostUpdateSQL(DB.DB); err != nil {
 		CheckDbErr(err, w)
@@ -91,14 +91,15 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 func PostsCreate(w http.ResponseWriter, r *http.Request) {
 	var ppk string = mux.Vars(r)["slug_or_id"]
 	pa := []md.Post{}
-	t:=md.Thread{}
+	t := md.Thread{}
+	created := time.Now()
+	timeStamp := created.Format(time.RFC3339)
 
-	if id, err := IsId(ppk); err==nil {
+	if id, err := IsId(ppk); err == nil {
 		t.ID = id
 	} else {
 		t.Slug = ppk
 	}
-	//fmt.Println(t.ID, "slog1:", t.Slug)
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&pa); err != nil {
@@ -112,16 +113,12 @@ func PostsCreate(w http.ResponseWriter, r *http.Request) {
 		CheckDbErr(err, w)
 		return
 	}
-	for i:=0; i < len(pa); i+=1 {
-		pa[i].Thread = t.ID
-		pa[i].Forum = t.Forum
 
-		if err := pa[i].PostCreateOneSQL(DB.DB); err != nil {
-			CheckDbErr(err, w)
-			return
-		}
+	if err := md.PostCreateListSQL(DB.DB, pa, t.Forum, timeStamp, t.ID); err != nil {
+		CheckDbErr(err, w)
+		return
 	}
+
 
 	RespondJSON(w, http.StatusCreated, pa)
 }
-

@@ -1,9 +1,9 @@
 package server
 
 import (
-	"net/http"
 	"fmt"
 	"github.com/gorilla/mux"
+	"net/http"
 )
 
 type Route struct {
@@ -27,7 +27,7 @@ func NewRouter() *mux.Router {
 			Path(route.Pattern).
 			Name(route.Name).
 			Handler(handler)
-			//Schemes("https, http")
+		//Schemes("https, http")
 	}
 	return router
 }
@@ -162,5 +162,4 @@ var routes = Routes{
 		"/api/user/{nickname}/profile",
 		UserUpdate,
 	},
-
 }

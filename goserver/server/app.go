@@ -1,13 +1,12 @@
 package server
 
 import (
-	"database/sql"
-	_ "github.com/lib/pq"
-	"fmt"
-	"log"
 	md "./models"
+	"database/sql"
+	"fmt"
+	_ "github.com/lib/pq"
+	"log"
 )
-
 
 type DataBase struct {
 	DB *sql.DB
@@ -17,7 +16,7 @@ var DB DataBase
 
 func (d *DataBase) Initialize(user, password, dbname, host, port string) {
 	connectionString :=
-		fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=disable", user, password, dbname, host, port )
+		fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=disable", user, password, dbname, host, port)
 
 	var err error
 	d.DB, err = sql.Open("postgres", connectionString)
@@ -26,7 +25,7 @@ func (d *DataBase) Initialize(user, password, dbname, host, port string) {
 	}
 }
 
-func (d *DataBase)CreateTables() {
+func (d *DataBase) CreateTables() {
 	if _, err := d.DB.Exec(md.UserTableCreationQuery); err != nil {
 		log.Fatal(err)
 	}
@@ -43,4 +42,3 @@ func (d *DataBase)CreateTables() {
 		log.Fatal(err)
 	}
 }
-

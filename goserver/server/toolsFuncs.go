@@ -1,14 +1,13 @@
 package server
 
-
 import "encoding/json"
 import (
-	"net/http"
-	"reflect"
-	"fmt"
 	md "./models"
 	"database/sql"
-//	"strings"
+	"fmt"
+	"net/http"
+	"reflect"
+	//	"strings"
 	"strconv"
 )
 
@@ -30,14 +29,14 @@ func InspectEmpty(t interface{}) bool {
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i)
 		v := f.Interface()
-		if  v == "" {
+		if v == "" {
 			return true
 		}
 	}
 	return false
 }
 
-func CompareTypes(t1, t2 interface{})  {
+func CompareTypes(t1, t2 interface{}) {
 	s1 := reflect.ValueOf(t1).Elem()
 	//s1.Field(1).SetString("lalal")
 
@@ -46,13 +45,13 @@ func CompareTypes(t1, t2 interface{})  {
 	for i := 0; i < s1.NumField(); i++ {
 		v1 := s1.Field(i)
 		v2 := s2.Field(i)
-		if  v1.String()=="" {
+		if v1.String() == "" {
 			v1.SetString(v2.String())
 		}
 	}
 }
 
-func PrintObject(t interface{})  {
+func PrintObject(t interface{}) {
 	s := reflect.ValueOf(t)
 	typeOfT := s.Type()
 	for i := 0; i < s.NumField(); i++ {
@@ -76,7 +75,7 @@ func CheckDbErr(err error, w http.ResponseWriter) {
 }
 
 func IsId(pk string) (int, error) {
-	if val, err:= strconv.Atoi(pk); err!=nil {
+	if val, err := strconv.Atoi(pk); err != nil {
 		return -1, err
 	} else {
 		return val, nil
