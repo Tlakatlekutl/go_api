@@ -48,6 +48,11 @@ func ThreadCreate(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	fu := md.ForumUser{f.Slug, t.Author}
+
+	if  err := fu.ForumUserInsertSQL(DB.DB); err != nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+	}
 
 	RespondJSON(w, http.StatusCreated, t)
 }

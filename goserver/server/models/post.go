@@ -6,6 +6,7 @@ import (
 	"log"
 	"github.com/lib/pq"
 	"strings"
+	"fmt"
 )
 
 const PostTableCreationQuery = `CREATE TABLE IF NOT EXISTS post
@@ -26,7 +27,7 @@ const PostTableCreationQuery = `CREATE TABLE IF NOT EXISTS post
  	CREATE UNIQUE INDEX IF NOT EXISTS post_id_parent_index ON post (id, parent);
  	CREATE INDEX IF NOT EXISTS post_thread_id ON post (thread, id);
  	CREATE UNIQUE INDEX IF NOT EXISTS post_id_index ON post(id);
- 	CREATE INDEX IF NOT EXISTS parent_path_gin_index on post USING GIN (parentPath);
+ 	CREATE INDEX IF NOT EXISTS parent_path_second_elem_index on post ((parentPath[1]));
  	`
 
 type Post struct {
@@ -40,19 +41,6 @@ type Post struct {
 	Created  string `json:"created"`
 }
 
-func parseError(err error) error {
-	if err!=nil {
-		switch err.(*pq.Error).Code {
-		case pq.ErrorCode("23505"):
-			return UniqueError
-		case pq.ErrorCode("23503"):
-			return FKConstraintError
-		default:
-			return err
-		}
-	}
-	return nil
-}
 
 func PostCreateListSQL(db *sql.DB, postList []Post, forum, created string, thread int) error {
 
@@ -64,6 +52,7 @@ func PostCreateListSQL(db *sql.DB, postList []Post, forum, created string, threa
 
 	stmt, err := tx.Prepare(pq.CopyIn("post", "id","parent", "author", "message", "isedited", "forum", "thread", "created","parentpath"))
 
+	uniqueUsers := []ForumUser{}
 	for i:=0; i < len(postList); i+=1 {
 		err = db.QueryRow("SELECT nextval(pg_get_serial_sequence('post', 'id'))").Scan(&postList[i].Id)
 		if err != nil {
@@ -94,6 +83,7 @@ func PostCreateListSQL(db *sql.DB, postList []Post, forum, created string, threa
 			//tx.Rollback()
 			return err;
 		}
+		uniqueUsers = UniqArray(uniqueUsers, postList[i].Author, forum)
 	}
 	_ , err = stmt.Exec()
 
@@ -108,11 +98,27 @@ func PostCreateListSQL(db *sql.DB, postList []Post, forum, created string, threa
 		return parseError(err)
 	}
 
+
 	_, err = tx.Exec("UPDATE forum SET posts=posts+$1 WHERE lower(slug)=$2",len(postList), strings.ToLower(forum))
 	if err != nil {
 		tx.Rollback()
 		return parseError(err)
 	}
+	for _, fu := range uniqueUsers {
+		_, err = tx.Exec(
+			`INSERT INTO forum_user(forum, userPK) VALUES($1, $2)
+			ON CONFLICT ON CONSTRAINT unique_pair_constr_fu DO NOTHING`,
+			forum, fu.UserPK);
+		if (parseError(err) == UniqueError) {
+			fmt.Println(err.Error())
+			err = nil;
+		} else if err != nil{
+			fmt.Println(err.Error())
+			tx.Rollback()
+			return parseError(err)
+		}
+	}
+
 	tx.Commit();
 
 	return parseError(err);

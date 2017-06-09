@@ -48,16 +48,8 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 		t.Title, t.Author, t.Forum, t.Message, t.Slug, t.Created).Scan(&t.ID, &t.Created)
 
 	if err != nil {
-		switch err.(*pq.Error).Code {
-		case pq.ErrorCode("23505"):
-			return UniqueError
-		case pq.ErrorCode("23503"):
-			return FKConstraintError
-		default:
-			return err
-		}
 		tx.Rollback()
-		return err
+		return parseError(err)
 	}
 	_, err = tx.Exec("UPDATE forum SET threads=threads+1 WHERE lower(slug)=$1", strings.ToLower(t.Forum))
 	if err != nil {
@@ -65,6 +57,16 @@ func (t *Thread) ThreadCreateSQL(db *sql.DB) error {
 		return err
 	}
 	err = tx.Commit()
+
+	_, err = db.Exec(
+		`INSERT INTO forum_user(forum, userPK) VALUES($1, $2)
+		ON CONFLICT ON CONSTRAINT unique_pair_constr_fu DO NOTHING`,
+		t.Forum, t.Author);
+	if (parseError(err) == FKConstraintError) {
+		return nil;
+	} else {
+		return err
+	}
 
 	return err
 }

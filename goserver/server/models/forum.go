@@ -3,9 +3,8 @@ package models
 import (
 	"database/sql"
 	"errors"
-	"github.com/lib/pq"
+	//"github.com/lib/pq"
 	"strings"
-	//"fmt"
 	"strconv"
 )
 
@@ -19,6 +18,9 @@ const ForumTableCreationQuery = `CREATE TABLE IF NOT EXISTS forum
 	);
 	CREATE UNIQUE INDEX IF NOT EXISTS forum_slug_ci_index ON forum ((lower(slug)));
 	CREATE INDEX IF NOT EXISTS forum_pk_index ON forum (lower(userPK));`
+
+
+
 
 var FKConstraintError = errors.New("violates foreign key constraint")
 
@@ -36,15 +38,17 @@ func (f *Forum) ForumCreateSQL(db *sql.DB) error {
 		"INSERT INTO forum(title, slug, userPK) VALUES($1, $2, $3)",
 		f.Title, f.Slug, f.User)
 	if err != nil {
-		switch err.(*pq.Error).Code {
-		case pq.ErrorCode("23505"):
-			return UniqueError
-		case pq.ErrorCode("23503"):
-			return FKConstraintError
-		default:
-			return err
-		}
+		return parseError(err)
 	}
+	//_, err = db.Exec(
+	//	`INSERT INTO forum_user(forum, userPK) VALUES($1, $2)
+	//	ON CONFLICT ON CONSTRAINT unique_pair_constr_fu DO NOTHING`,
+	//	f.Slug, f.User);
+	//if (parseError(err) == FKConstraintError) {
+	//	return nil;
+	//} else {
+	//	return err
+	//}
 	return nil
 }
 
@@ -104,30 +108,32 @@ func (f *Forum) ForumGetListThreadsSQL(db *sql.DB, limit, since, desc string) ([
 }
 
 func (f *Forum) ForumGetListUsersSQL(db *sql.DB, limit, since, desc string) ([]User, error) {
-	queryRow := `SELECT DISTINCT lower(nickname) COLLATE "ucs_basic", nickname, fullname, about, email FROM users u
-	LEFT JOIN thread t ON t.author=u.nickname
-	LEFT JOIN post p ON p.author=u.nickname
-	LEFT JOIN forum f ON f.userpk=u.nickname
-	WHERE (lower(t.forum)=$1 OR lower(p.forum) = $1 OR lower(f.userpk)=$1)`
+	queryRow := `SELECT lower(fu.userPK) COLLATE "ucs_basic" as ncol, u.nickname, u.fullname, u.about, u.email FROM forum_user as fu
+	JOIN users as u on lower(fu.userPK) = lower(u.nickname) WHERE lower(fu.forum) = $1`
+	//queryRow := `SELECT DISTINCT lower(nickname) COLLATE "ucs_basic", nickname, fullname, about, email FROM users u
+	//LEFT JOIN thread t ON t.author=u.nickname
+	//LEFT JOIN post p ON p.author=u.nickname
+	//LEFT JOIN forum f ON f.userpk=u.nickname
+	//WHERE (lower(t.forum)=$1 OR lower(p.forum) = $1 OR lower(f.userpk)=$1)`
 
 	var params []interface{}
 	params = append(params, strings.ToLower(f.Slug))
 
 	paramOffset := 2
 	if since != "" && desc == "true" {
-		queryRow += ` AND lower(nickname) COLLATE "ucs_basic" < lower($` + strconv.Itoa(paramOffset) + `) COLLATE "ucs_basic"`
+		queryRow += ` AND lower(fu.userPK) COLLATE "ucs_basic" < lower($` + strconv.Itoa(paramOffset) + `) COLLATE "ucs_basic"`
 		params = append(params, since)
 		paramOffset += 1
 	} else if since != "" {
-		queryRow += ` AND lower(nickname) COLLATE "ucs_basic" > lower($` + strconv.Itoa(paramOffset) + `) COLLATE "ucs_basic"`
+		queryRow += ` AND lower(fu.userPK) COLLATE "ucs_basic" > lower($` + strconv.Itoa(paramOffset) + `) COLLATE "ucs_basic"`
 		params = append(params, since)
 		paramOffset += 1
 	}
 
 	if desc == "true" {
-		queryRow += ` ORDER BY lower(nickname) COLLATE "ucs_basic" DESC`
+		queryRow += ` ORDER BY lower(fu.userPK) COLLATE "ucs_basic" DESC`
 	} else {
-		queryRow += ` ORDER BY lower(nickname) COLLATE "ucs_basic" ASC`
+		queryRow += ` ORDER BY lower(fu.userPK) COLLATE "ucs_basic" ASC`
 	}
 	if limit != "" {
 		queryRow += ` LIMIT $` + strconv.Itoa(paramOffset)
@@ -135,6 +141,7 @@ func (f *Forum) ForumGetListUsersSQL(db *sql.DB, limit, since, desc string) ([]U
 		paramOffset += 1
 	}
 
+	//fmt.Print(queryRow, params)
 	rows, err := db.Query(queryRow, params...)
 
 	if err != nil {

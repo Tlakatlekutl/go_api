@@ -15,7 +15,8 @@ const UserTableCreationQuery = `CREATE TABLE IF NOT EXISTS users
 		about TEXT
 	);
 	CREATE UNIQUE INDEX IF NOT EXISTS user_email_ci_index ON users ((lower(email)));
-	CREATE UNIQUE INDEX IF NOT EXISTS user_nickname_ci_index ON users ((lower(nickname)));`
+	CREATE UNIQUE INDEX IF NOT EXISTS user_nickname_ci_index ON users ((lower(nickname)));
+	CREATE INDEX IF NOT EXISTS user_user_collate_index on users(lower(nickname) COLLATE "ucs_basic");`
 
 var UniqueError = errors.New("unique")
 
