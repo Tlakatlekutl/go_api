@@ -14,7 +14,7 @@ const VoteTableCreationQuery = `CREATE TABLE IF NOT EXISTS vote
 	);
 	ALTER TABLE vote DROP CONSTRAINT IF EXISTS unique_pair_constr;
 	ALTER TABLE vote ADD CONSTRAINT unique_pair_constr UNIQUE (userPK, thread);
-	CREATE UNIQUE INDEX IF NOT EXISTS unique_pair ON vote (thread, userPK);	`
+	--CREATE UNIQUE INDEX IF NOT EXISTS unique_pair ON vote (thread, userPK);	`
 
 type Vote struct {
 	Nickname string `json:"nickname"`
