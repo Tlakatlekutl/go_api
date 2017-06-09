@@ -22,11 +22,11 @@ const PostTableCreationQuery = `CREATE TABLE IF NOT EXISTS post
 		parentPath INT[]
 	);
  	CREATE INDEX IF NOT EXISTS post_author_ci_index ON post((lower(author)));
- 	CREATE INDEX IF NOT EXISTS post_forum_ci_index ON post ((lower(forum)));
+ 	--CREATE INDEX IF NOT EXISTS post_forum_ci_index ON post ((lower(forum)));
  	CREATE INDEX IF NOT EXISTS post_thread_ci_index ON post (thread);
- 	CREATE UNIQUE INDEX IF NOT EXISTS post_id_parent_index ON post (id, parent);
+ 	--CREATE UNIQUE INDEX IF NOT EXISTS post_id_parent_index ON post (id, parent);
  	CREATE INDEX IF NOT EXISTS post_thread_id ON post (thread, id);
- 	CREATE UNIQUE INDEX IF NOT EXISTS post_id_index ON post(id);
+ 	--CREATE UNIQUE INDEX IF NOT EXISTS post_id_index ON post(id);
  	CREATE INDEX IF NOT EXISTS parent_path_second_elem_index on post ((parentPath[1]));
  	`
 
