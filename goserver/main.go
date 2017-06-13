@@ -9,8 +9,8 @@ import (
 func main() {
 	log.Printf("Server started")
 
-	sw.DB.Initialize("postgres", "admin", "forum-test", "localhost", "5432")
-	//sw.DB.Initialize("docker", "docker", "docker", "localhost", "5432")
+	//sw.DB.Initialize("postgres", "admin", "forum-test", "localhost", "5432")
+	sw.DB.Initialize("docker", "docker", "docker", "localhost", "5432")
 	defer sw.DB.DB.Close()
 
 	sw.DB.CreateTables()
