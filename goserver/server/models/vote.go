@@ -48,25 +48,34 @@ func (v *Vote) VoteCountSQL(db *sql.DB) (int, error) {
 
 func (t *Thread) ThreadVote(db *sql.DB, v *Vote) error {
 	var vote int
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	err = tx.QueryRow(`SELECT voice FROM vote WHERE userPK=$1 AND thread=$2`, v.Nickname, v.Thread).Scan(&vote)
-	if err == sql.ErrNoRows {
-		_, err = tx.Exec(
-			`INSERT INTO vote(userpk, voice, thread) VALUES($1, $2, $3)`,
-		 v.Nickname, v.Voice, v.Thread)
+
+	_, err := db.Exec(
+		`INSERT INTO vote(userpk, voice, thread) VALUES($1, $2, $3)`,
+		v.Nickname, v.Voice, v.Thread)
+	//err = tx.QueryRow(`SELECT voice FROM vote WHERE userPK=$1 AND thread=$2`, v.Nickname, v.Thread).Scan(&vote)
+	if err == nil {
+		//_, err = tx.Exec(
+		//	`INSERT INTO vote(userpk, voice, thread) VALUES($1, $2, $3)`,
+		// v.Nickname, v.Voice, v.Thread)
+		//if err != nil {
+		//	tx.Rollback()
+		//	return parseError(err)
+		//}
+		err = db.QueryRow(`UPDATE thread SET votes = votes + $2 WHERE id=$1 RETURNING title, author, forum, message, slug, votes, created`, v.Thread, v.Voice).Scan(&t.Title, &t.Author, &t.Forum, &t.Message, &t.Slug, &t.Votes, &t.Created)
 		if err != nil {
+			//tx.Rollback()
+			return parseError(err)
+		}
+	} else if parseError(err) == UniqueError {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		err = tx.QueryRow(`SELECT voice FROM vote WHERE userPK=$1 AND thread=$2`, v.Nickname, v.Thread).Scan(&vote)
+		if (err != nil) {
 			tx.Rollback()
 			return parseError(err)
 		}
-		err = tx.QueryRow(`UPDATE thread SET votes = votes + $2 WHERE id=$1 RETURNING title, author, forum, message, slug, votes, created`, v.Thread, v.Voice).Scan(&t.Title, &t.Author, &t.Forum, &t.Message, &t.Slug, &t.Votes, &t.Created)
-		if err != nil {
-			tx.Rollback()
-			return parseError(err)
-		}
-	} else if err == nil {
 		_, err = tx.Exec(
 			`UPDATE vote SET voice = $3 WHERE userPK=$1 AND thread=$2`,
 			v.Nickname, v.Thread, v.Voice)
@@ -79,12 +88,11 @@ func (t *Thread) ThreadVote(db *sql.DB, v *Vote) error {
 			tx.Rollback()
 			return parseError(err)
 		}
+		tx.Commit()
 	} else {
-		tx.Rollback()
-		return err
+		return parseError(err)
 	}
 
-	tx.Commit()
 	return nil
 
 	//_, err := db.Exec(
