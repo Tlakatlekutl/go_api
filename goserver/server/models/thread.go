@@ -136,14 +136,6 @@ func (t *Thread) ThreadGetPostsFlatSQL(db *sql.DB, limit, desc string, offset in
 
 func (t *Thread) ThreadGetPostsTreeSQL(db *sql.DB, limit, desc string, offset int) ([]Post, error) {
 	queryRow := `SELECT id, parent, author, message, isEdited, forum, thread, created FROM post WHERE thread = $1`
-//`	queryRow := `WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
-//    SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0
-//    UNION
-//      SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
-//         JOIN tree ON post.parent = tree.id
-//      WHERE post.thread = $1
-//) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree
-//`
 
 	var params []interface{}
 	params = append(params, t.ID)
@@ -189,8 +181,6 @@ func (t *Thread) ThreadGetPostsParentTreeSQL(db *sql.DB, limit, desc string, off
 WHERE thread = $1 AND parentPath[1] in (
 	SELECT id FROM post
 	WHERE thread = $1 AND array_length(parentPath, 1) = 1`
-//`WITH RECURSIVE tree(id, parent, author, message, isEdited, forum, thread, created, path) AS(
-//    (SELECT id, parent, author, message, isEdited, forum, thread, created, ARRAY[id] FROM post WHERE thread = $1 AND parent=0`
 
 	endQueryRow := ""
 	var params []interface{}
@@ -217,12 +207,6 @@ WHERE thread = $1 AND parentPath[1] in (
 	queryRow += `)`
 
 	queryRow += endQueryRow
-
-	//UNION
-	//SELECT post.id, post.parent, post.author, post.message, post.isEdited, post.forum, post.thread, post.created, path||post.id FROM post
-	//JOIN tree ON post.parent = tree.id
-	//WHERE post.thread = $1
-	//) SELECT id, parent, author, message, isEdited, forum, thread, created FROM tree` + endQueryRow
 
 	rows, err := db.Query(queryRow, params...)
 

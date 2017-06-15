@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	//"strings"
 	"log"
 	"github.com/lib/pq"
 	"strings"
@@ -22,11 +21,8 @@ const PostTableCreationQuery = `CREATE TABLE IF NOT EXISTS post
 		parentPath INT[]
 	);
  	CREATE INDEX IF NOT EXISTS post_author_ci_index ON post((lower(author)));
- 	--CREATE INDEX IF NOT EXISTS post_forum_ci_index ON post ((lower(forum)));
  	CREATE INDEX IF NOT EXISTS post_thread_ci_index ON post (thread);
- 	--CREATE UNIQUE INDEX IF NOT EXISTS post_id_parent_index ON post (id, parent);
  	CREATE INDEX IF NOT EXISTS post_thread_id ON post (thread, id);
- 	--CREATE UNIQUE INDEX IF NOT EXISTS post_id_index ON post(id);
  	CREATE INDEX IF NOT EXISTS parent_path_second_elem_index on post ((parentPath[1]));
  	`
 
@@ -45,7 +41,6 @@ type Post struct {
 func PostCreateListSQL(db *sql.DB, postList []Post, forum, created string, thread int) error {
 
 	tx, err := db.Begin()
-	//defer tx.Rollback()
 	if err != nil {
 		log.Fatal(err);
 	}
@@ -59,28 +54,23 @@ func PostCreateListSQL(db *sql.DB, postList []Post, forum, created string, threa
 			tx.Rollback()
 			return err
 		}
-		//parentPath := []sql.NullInt64{}
 		parentPath := []int64{}
 		if (postList[i].Parent != 0) {
-			//var path []sql.NullInt64{}
 			var path []int64
 			err = db.QueryRow("SELECT parentPath FROM post WHERE id=$1 AND thread=$2", postList[i].Parent, thread).Scan(pq.Array(&path))
 			if err != nil {
-				//tx.Rollback()
-				//return err
 				return UniqueError
 			}
 			parentPath = append(parentPath, path...)
 		}
 		parentPath = append(parentPath, int64(postList[i].Id))
-		//parentPath = append([]int64{int64(postList[i].Parent)}, parentPath...)
+
 		postList[i].Forum = forum
 		postList[i].Created = created
 		postList[i].Thread = thread
 
 		_, err  = stmt.Exec(postList[i].Id, postList[i].Parent, postList[i].Author,postList[i].Message, postList[i].IsEdited, forum, thread, created, pq.Array(parentPath));
 		if err != nil {
-			//tx.Rollback()
 			return err;
 		}
 		uniqueUsers = UniqArray(uniqueUsers, postList[i].Author, forum)

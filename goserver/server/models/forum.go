@@ -40,15 +40,6 @@ func (f *Forum) ForumCreateSQL(db *sql.DB) error {
 	if err != nil {
 		return parseError(err)
 	}
-	//_, err = db.Exec(
-	//	`INSERT INTO forum_user(forum, userPK) VALUES($1, $2)
-	//	ON CONFLICT ON CONSTRAINT unique_pair_constr_fu DO NOTHING`,
-	//	f.Slug, f.User);
-	//if (parseError(err) == FKConstraintError) {
-	//	return nil;
-	//} else {
-	//	return err
-	//}
 	return nil
 }
 
@@ -110,11 +101,6 @@ func (f *Forum) ForumGetListThreadsSQL(db *sql.DB, limit, since, desc string) ([
 func (f *Forum) ForumGetListUsersSQL(db *sql.DB, limit, since, desc string) ([]User, error) {
 	queryRow := `SELECT lower(fu.userPK) COLLATE "ucs_basic" as ncol, u.nickname, u.fullname, u.about, u.email FROM forum_user as fu
 	JOIN users as u on lower(fu.userPK) = lower(u.nickname) WHERE lower(fu.forum) = $1`
-	//queryRow := `SELECT DISTINCT lower(nickname) COLLATE "ucs_basic", nickname, fullname, about, email FROM users u
-	//LEFT JOIN thread t ON t.author=u.nickname
-	//LEFT JOIN post p ON p.author=u.nickname
-	//LEFT JOIN forum f ON f.userpk=u.nickname
-	//WHERE (lower(t.forum)=$1 OR lower(p.forum) = $1 OR lower(f.userpk)=$1)`
 
 	var params []interface{}
 	params = append(params, strings.ToLower(f.Slug))
@@ -141,7 +127,6 @@ func (f *Forum) ForumGetListUsersSQL(db *sql.DB, limit, since, desc string) ([]U
 		paramOffset += 1
 	}
 
-	//fmt.Print(queryRow, params)
 	rows, err := db.Query(queryRow, params...)
 
 	if err != nil {

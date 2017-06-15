@@ -201,10 +201,6 @@ func ThreadVote(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	//if err := t.ThreadSelectOneIdOrSlugSQL(DB.DB); err != nil {
-	//	CheckDbErr(err, w)
-	//	return
-	//}
 
 	v := md.Vote{Thread: t.ID}
 	decoder := json.NewDecoder(r.Body)
@@ -214,27 +210,11 @@ func ThreadVote(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	//u := md.User{Nickname: v.Nickname}
-
-	//if err := u.GetOneUserSQL(DB.DB); err != nil {
-	//	CheckDbErr(err, w)
-	//	return
-	//}
 
 	if err := t.ThreadVote(DB.DB, &v); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
-	//if err := v.VoteSQL(DB.DB); err != nil {
-	//	CheckDbErr(err, w)
-	//	return
-	//}
-	//if sum, err := v.VoteCountSQL(DB.DB); err == nil {
-	//	t.Votes = sum
-	//} else {
-	//	CheckDbErr(err, w)
-	//	return
-	//}
 
 	RespondJSON(w, http.StatusOK, t)
 

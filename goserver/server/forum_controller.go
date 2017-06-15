@@ -2,11 +2,9 @@ package server
 
 import (
 	"net/http"
-	//"github.com/gorilla/mux"
 	md "./models"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	//"fmt"
 )
 
 func ForumCreate(w http.ResponseWriter, r *http.Request) {
@@ -75,8 +73,6 @@ func ForumGetThreads(w http.ResponseWriter, r *http.Request) {
 	if val, ok := queryParams["desc"]; ok {
 		desc = val[0]
 	}
-
-	//fmt.Println(limit, since, desc)
 
 	f := md.Forum{Slug: sg}
 	if err := f.GetForumByUniqueSlug(DB.DB); err != nil {

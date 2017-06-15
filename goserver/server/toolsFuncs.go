@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	//	"strings"
 	"strconv"
 )
 
@@ -38,9 +37,6 @@ func InspectEmpty(t interface{}) bool {
 
 func CompareTypes(t1, t2 interface{}) {
 	s1 := reflect.ValueOf(t1).Elem()
-	//s1.Field(1).SetString("lalal")
-
-	//fmt.Println("%s", s1.Field(1))
 	s2 := reflect.ValueOf(t2).Elem()
 	for i := 0; i < s1.NumField(); i++ {
 		v1 := s1.Field(i)
