@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"fmt"
 )
 
 func (a *App) UserCreate(w http.ResponseWriter, r *http.Request) {
@@ -24,6 +25,9 @@ func (a *App) UserCreate(w http.ResponseWriter, r *http.Request) {
 			if users, err := u.GetUniqueUsersSQL(a.DB); err == nil {
 				RespondJSON(w, http.StatusConflict, users)
 				return
+			} else {
+				fmt.Println(err.Error())
+				RespondError(w, http.StatusRequestTimeout, err.Error())
 			}
 
 		default:
