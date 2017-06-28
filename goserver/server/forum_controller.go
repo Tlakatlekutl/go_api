@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func ForumCreate(w http.ResponseWriter, r *http.Request) {
+func (a *App) ForumCreate(w http.ResponseWriter, r *http.Request) {
 	f := md.Forum{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -19,17 +19,17 @@ func ForumCreate(w http.ResponseWriter, r *http.Request) {
 
 	u := md.User{Nickname: f.User}
 
-	if err := u.GetOneUserSQL(DB.DB); err != nil {
+	if err := u.GetOneUserSQL(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
 
 	f.User = u.Nickname
 
-	if err := f.ForumCreateSQL(DB.DB); err != nil {
+	if err := f.ForumCreateSQL(a.DB); err != nil {
 		switch err {
 		case md.UniqueError:
-			if err := f.GetForumByUniqueNickname(DB.DB); err == nil {
+			if err := f.GetForumByUniqueNickname(a.DB); err == nil {
 				RespondJSON(w, http.StatusConflict, f)
 				return
 			}
@@ -45,11 +45,11 @@ func ForumCreate(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusCreated, f)
 }
 
-func ForumGetOne(w http.ResponseWriter, r *http.Request) {
+func (a *App) ForumGetOne(w http.ResponseWriter, r *http.Request) {
 	var sg string = mux.Vars(r)["slug"]
 	f := md.Forum{Slug: sg}
 
-	if err := f.GetForumByUniqueSlug(DB.DB); err != nil {
+	if err := f.GetForumByUniqueSlug(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
@@ -57,7 +57,7 @@ func ForumGetOne(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, f)
 }
 
-func ForumGetThreads(w http.ResponseWriter, r *http.Request) {
+func (a *App) ForumGetThreads(w http.ResponseWriter, r *http.Request) {
 	var sg string = mux.Vars(r)["slug"]
 
 	queryParams := r.URL.Query()
@@ -75,11 +75,11 @@ func ForumGetThreads(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := md.Forum{Slug: sg}
-	if err := f.GetForumByUniqueSlug(DB.DB); err != nil {
+	if err := f.GetForumByUniqueSlug(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
-	if threads, err := f.ForumGetListThreadsSQL(DB.DB, limit, since, desc); err != nil {
+	if threads, err := f.ForumGetListThreadsSQL(a.DB, limit, since, desc); err != nil {
 		CheckDbErr(err, w)
 		return
 	} else {
@@ -87,7 +87,7 @@ func ForumGetThreads(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func ForumGetUsers(w http.ResponseWriter, r *http.Request) {
+func (a *App) ForumGetUsers(w http.ResponseWriter, r *http.Request) {
 	var sg string = mux.Vars(r)["slug"]
 
 	queryParams := r.URL.Query()
@@ -105,11 +105,11 @@ func ForumGetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	f := md.Forum{Slug: sg}
-	if err := f.GetForumByUniqueSlug(DB.DB); err != nil {
+	if err := f.GetForumByUniqueSlug(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
-	if users, err := f.ForumGetListUsersSQL(DB.DB, limit, since, desc); err != nil {
+	if users, err := f.ForumGetListUsersSQL(a.DB, limit, since, desc); err != nil {
 		CheckDbErr(err, w)
 		return
 	} else {
