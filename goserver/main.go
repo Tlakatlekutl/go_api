@@ -9,13 +9,15 @@ import (
 func main() {
 	log.Printf("Server started")
 
-	//sw.DB.Initialize("postgres", "admin", "forum-test", "localhost", "5432")
-	sw.DB.Initialize("docker", "docker", "docker", "localhost", "5432")
-	defer sw.DB.DB.Close()
+	var App sw.App
 
-	sw.DB.CreateTables()
+	App.Initialize("postgres", "admin", "forum-test", "localhost", "5432")
+	//App.Initialize("docker", "docker", "docker", "localhost", "5432")
+	defer App.DB.Close()
 
-	router := sw.NewRouter()
+	App.CreateTables()
 
-	log.Fatal(http.ListenAndServe(":5000", router))
+	App.NewRouter()
+
+	log.Fatal(http.ListenAndServe(":5000", App.Router))
 }

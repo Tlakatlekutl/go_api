@@ -17,11 +17,11 @@ type SinglePostResponse struct {
 	Thread *md.Thread `json:"thread,omitempty"`
 }
 
-func PostGetOne(w http.ResponseWriter, r *http.Request) {
+func (a *App) PostGetOne(w http.ResponseWriter, r *http.Request) {
 	var sid string = mux.Vars(r)["id"]
 	id, _ := strconv.Atoi(sid)
 	p := md.Post{Id: id}
-	if err := p.PostGetOneSQL(DB.DB); err != nil {
+	if err := p.PostGetOneSQL(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
@@ -36,16 +36,16 @@ func PostGetOne(w http.ResponseWriter, r *http.Request) {
 			switch task {
 			case "user":
 				u := md.User{Nickname: p.Author}
-				err = u.GetOneUserSQL(DB.DB)
+				err = u.GetOneUserSQL(a.DB)
 				resp.Ath = &u
 
 			case "forum":
 				f := md.Forum{Slug: p.Forum}
-				err = f.GetForumByUniqueSlug(DB.DB)
+				err = f.GetForumByUniqueSlug(a.DB)
 				resp.Forum = &f
 			case "thread":
 				t := md.Thread{ID: p.Thread}
-				err = t.ThreadSelectOneIdOrSlugSQL(DB.DB)
+				err = t.ThreadSelectOneIdOrSlugSQL(a.DB)
 				resp.Thread = &t
 			}
 			if err != nil {
@@ -59,7 +59,7 @@ func PostGetOne(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, resp)
 }
 
-func PostUpdate(w http.ResponseWriter, r *http.Request) {
+func (a *App) PostUpdate(w http.ResponseWriter, r *http.Request) {
 	var sid string = mux.Vars(r)["id"]
 	id, _ := strconv.Atoi(sid)
 	p := md.Post{Id: id}
@@ -72,7 +72,7 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	if p.Message == "" {
-		if err := p.PostGetOneSQL(DB.DB); err != nil {
+		if err := p.PostGetOneSQL(a.DB); err != nil {
 			CheckDbErr(err, w)
 			return
 		}
@@ -80,7 +80,7 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := p.PostUpdateSQL(DB.DB); err != nil {
+	if err := p.PostUpdateSQL(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
@@ -88,7 +88,7 @@ func PostUpdate(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, p)
 }
 
-func PostsCreate(w http.ResponseWriter, r *http.Request) {
+func (a *App) PostsCreate(w http.ResponseWriter, r *http.Request) {
 	var ppk string = mux.Vars(r)["slug_or_id"]
 	pa := []md.Post{}
 	t := md.Thread{}
@@ -109,12 +109,12 @@ func PostsCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := t.ThreadSelectOneIdOrSlugSQL(DB.DB); err != nil {
+	if err := t.ThreadSelectOneIdOrSlugSQL(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
 
-	if err := md.PostCreateListSQL(DB.DB, pa, t.Forum, timeStamp, t.ID); err != nil {
+	if err := md.PostCreateListSQL(a.DB, pa, t.Forum, timeStamp, t.ID); err != nil {
 		CheckDbErr(err, w)
 		return
 	}

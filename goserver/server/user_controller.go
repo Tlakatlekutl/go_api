@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"fmt"
 )
 
-func UserCreate(w http.ResponseWriter, r *http.Request) {
+func (a *App) UserCreate(w http.ResponseWriter, r *http.Request) {
 	var nn string = mux.Vars(r)["nickname"]
 	u := md.User{Nickname: nn}
 
@@ -18,12 +19,15 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := u.CreateUserSQL(DB.DB); err != nil {
+	if err := u.CreateUserSQL(a.DB); err != nil {
 		switch err {
 		case md.UniqueError:
-			if users, err := u.GetUniqueUsersSQL(DB.DB); err == nil {
+			if users, err := u.GetUniqueUsersSQL(a.DB); err == nil {
 				RespondJSON(w, http.StatusConflict, users)
 				return
+			} else {
+				fmt.Println(err.Error())
+				RespondError(w, http.StatusRequestTimeout, err.Error())
 			}
 
 		default:
@@ -36,11 +40,11 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func UserGetOne(w http.ResponseWriter, r *http.Request) {
+func (a *App) UserGetOne(w http.ResponseWriter, r *http.Request) {
 	var nn string = mux.Vars(r)["nickname"]
 	u := md.User{Nickname: nn}
 
-	if err := u.GetOneUserSQL(DB.DB); err != nil {
+	if err := u.GetOneUserSQL(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
@@ -48,7 +52,7 @@ func UserGetOne(w http.ResponseWriter, r *http.Request) {
 	RespondJSON(w, http.StatusOK, u)
 }
 
-func UserUpdate(w http.ResponseWriter, r *http.Request) {
+func (a *App) UserUpdate(w http.ResponseWriter, r *http.Request) {
 	var nn string = mux.Vars(r)["nickname"]
 	u := md.User{}
 
@@ -62,14 +66,14 @@ func UserUpdate(w http.ResponseWriter, r *http.Request) {
 	u.Nickname = nn
 	if InspectEmpty(u) {
 		u2 := md.User{Nickname: nn}
-		if err := u2.GetOneUserSQL(DB.DB); err != nil {
+		if err := u2.GetOneUserSQL(a.DB); err != nil {
 			CheckDbErr(err, w)
 			return
 		}
 		CompareTypes(&u, &u2)
 	}
 
-	if err := u.UpdateUserSQL(DB.DB); err != nil {
+	if err := u.UpdateUserSQL(a.DB); err != nil {
 		CheckDbErr(err, w)
 		return
 	}
